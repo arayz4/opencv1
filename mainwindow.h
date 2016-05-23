@@ -6,10 +6,15 @@
 #include <QtGui>
 #include <QImage>
 
+#include <QTimer>
+
 //OpenCV
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
+
+//Kinect
+#include <Kinect.h>
 
 using namespace std;
 using namespace cv;
@@ -24,13 +29,37 @@ public:
     QString opdlg();
     void readImgWithCV();
     void readImgWithCV_showCV();
+    void webcampaint();
     QImage* IplImage2QImage(const IplImage *iplImg);
 
     Mat detectFaceInImage(Mat &image,string &cascade_file);
 
+    void stereoma();
+
     bool showimg;
 
     bool bla;
+
+    //webcam
+    CvCapture* capture;
+
+    IplImage* iplimg;
+
+    //Kinect
+    IKinectSensor* kinect;
+    void kinect1();
+    void kinect2();
+
+    void kine01();
+    void kine02();
+    HRESULT hResult;
+
+    bool kineReady;
+
+    bool eyetrack;
+
+public slots:
+    void titi();
 
 private:
     QImage* qtimage;
