@@ -16,6 +16,10 @@
 //Kinect
 #include <Kinect.h>
 
+//GUI
+#include <QSpinBox>
+#include <QVBoxLayout>
+
 using namespace std;
 using namespace cv;
 
@@ -58,8 +62,25 @@ public:
 
     bool eyetrack;
 
+    //GUI
+    QSpinBox *sld1;
+    QSpinBox *sld2;
+    QSpinBox *sld3;
+
+    QWidget *mainwid;
+    QVBoxLayout *vlay;
+
+    //Disparity
+    Mat imgLeft;
+    Mat imgRight;
+    Mat imgDisparity16S;
+    Mat imgDisparity8U;
+
+    bool yomi;
+
 public slots:
     void titi();
+    void slid();
 
 private:
     QImage* qtimage;

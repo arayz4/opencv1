@@ -15,9 +15,49 @@ MainWindow::MainWindow(QWidget *parent)
     kineReady = false;
     eyetrack = false;
 
+    imgLeft = NULL;
+    imgRight = NULL;
+
+    sld1 = new QSpinBox();
+    sld2 = new QSpinBox();
+    sld3 = new QSpinBox();
+
+    yomi = false;
+
+    mainwid = new QWidget;
+    vlay = new QVBoxLayout;
+    this->setCentralWidget(mainwid);
+    mainwid->setLayout(vlay);
+    vlay->addWidget(sld1);
+    vlay->addWidget(sld3);
+    vlay->addSpacing(50);
+    vlay->addWidget(sld2);
+
+    sld1->setValue(16);
+    sld1->setSingleStep(16);
+    sld1->setRange(0,160);
+
+    sld2->setValue(21);
+    sld2->setRange(5,255);
+    sld2->setSingleStep(2);
+
+    sld3->setValue(5);
+    sld3->setRange(1,25);
+    sld3->setSingleStep(1);
+
+    QObject::connect(sld1,SIGNAL(valueChanged(int)),this,SLOT(slid()));
+    QObject::connect(sld2,SIGNAL(valueChanged(int)),this,SLOT(slid()));
+    QObject::connect(sld3,SIGNAL(valueChanged(int)),this,SLOT(slid()));
+
+
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(titi()));
     timer->start(10);  // 100ms
+}
+
+void MainWindow::slid()
+{
+    stereoma();
 }
 
 void MainWindow::titi()
@@ -176,27 +216,49 @@ void MainWindow::webcampaint()
 
 void MainWindow::stereoma()
 {
-    IplImage *img_l = cvLoadImage("C:/Users/arayz/Pictures/stereo/l.png");
-    IplImage *img_r = cvLoadImage("C:/Users/arayz/Pictures/stereo/r.png");
+    if (!yomi){
+        QStringList filenam;
 
-    Mat mat_img_l = cvarrToMat(img_l);
-    Mat mat_img_r = cvarrToMat(img_r);
+        filenam = QFileDialog::getOpenFileNames(this, tr("Open Image"), ".",tr("Image file (*.jpg *.jpeg *.png *bmp)"));
+        QString str1 = filenam.at(0);
+        QString str2 = filenam.at(1);
+        cv::String cvpath1(str1.toStdString());
+        cv::String cvpath2(str2.toStdString());
 
-    _OutputArray *dess;
-    dess = new _OutputArray;
+        imgLeft = imread( cvpath1, IMREAD_GRAYSCALE );
+        imgRight = imread( cvpath2, IMREAD_GRAYSCALE );
 
-    qDebug() << "temae";
+        imgDisparity16S = Mat( imgLeft.rows, imgLeft.cols, CV_16S );
+        imgDisparity8U = Mat( imgLeft.rows, imgLeft.cols, CV_8UC1 );
 
-    StereoBM *stebm;
-    stebm->compute(mat_img_l,mat_img_r,*dess);
+        yomi = true;
+    }
 
-    //StereoBM::compute(mat_img_l,mat_img_r,*dess);
+    //-- 2. Call the constructor for StereoBM
+    int intsld1 = sld1->value();
+    int intsld2 = sld2->value();
+    int intsld3 = sld3->value();
 
-    qDebug() << "computed";
+    //FILTER for STEREOBM
 
-    //Mat mat_result = dess.getMat();
+    int ndisparities = intsld1*intsld3;
+    int SADWindowSize = intsld2;
+    Ptr<StereoBM> sbm = StereoBM::create( ndisparities, SADWindowSize );
 
+    //-- 3. Calculate the disparity image
+    sbm->compute( imgLeft, imgRight, imgDisparity16S );
 
+    //-- Check its extreme values
+    double minVal; double maxVal;
+    minMaxLoc( imgDisparity16S, &minVal, &maxVal );
+
+    qDebug() << "min: " << minVal << " / max: " << maxVal;
+
+    //-- 4. Display it as a CV_8UC1 image
+    imgDisparity16S.convertTo( imgDisparity8U, CV_8UC1, 255/(maxVal - minVal));
+
+    namedWindow( "windowDisparity", WINDOW_NORMAL );
+    imshow( "windowDisparity", imgDisparity8U );
 
 }
 
@@ -396,14 +458,22 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
             kinect->Release();
             break;
         }
-        case Qt::Key_C:
+        case Qt::Key_D:
         {
-            if(eyetrack){
-                eyetrack = false;
-            }else{
-                eyetrack = true;
-            }
+        qDebug() << "d";
+            yomi = false;
+            stereoma();
             break;
         }
+
+    case Qt::Key_C:
+    {
+        if(eyetrack){
+            eyetrack = false;
+        }else{
+            eyetrack = true;
+        }
+        break;
+    }
     }
 }
